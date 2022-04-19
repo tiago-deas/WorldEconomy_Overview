@@ -5,4 +5,4 @@ Final Project of the course Initiation of International Politics with R from Uni
 
 <h1>👇</h1>
 
-<h3>My findings can be seen in the RMarkdown named "Analíse_PIB_GastoPublico_Mundial.pdf". <b>This analysis is only available in Portuguese.</b></h3>
+<h3>My findings can be seen in the RMarkdown named "Analíse_PIB_GastoPublico_Mundial.pdf". <i>This analysis is only available in Portuguese.</i></h3>
