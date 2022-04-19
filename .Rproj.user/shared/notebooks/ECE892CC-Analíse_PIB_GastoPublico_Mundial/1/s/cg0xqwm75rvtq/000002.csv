@@ -1,0 +1,4 @@
+"0",""
+"0","economia_mundial_completa <- left_join(x = economia_mundial,"
+"0","                                        y = continentes,"
+"0","                                        by = ""Pais"")"

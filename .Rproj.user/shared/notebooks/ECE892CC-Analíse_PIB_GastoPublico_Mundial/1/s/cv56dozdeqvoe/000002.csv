@@ -1,0 +1,5 @@
+"0","economia_mundial <- read_xls(""economia.xls"", col_names = T) %>% "
+"0","  dplyr::select(""country"", ""gdp__billions_"", ""govt__expenditure___gdp"") %>% "
+"0","  rename(""PIB"" = ""gdp__billions_"","
+"0","         ""Gasto_Gov"" = ""govt__expenditure___gdp"","
+"0","         ""Pais"" = ""country"")"

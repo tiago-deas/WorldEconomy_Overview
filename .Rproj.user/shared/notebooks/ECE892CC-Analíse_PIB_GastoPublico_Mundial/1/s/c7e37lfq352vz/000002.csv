@@ -1,0 +1,4 @@
+"0",""
+"0","continentes <- read.csv(""paises_continentes.csv"", header = T ) %>% "
+"0","  rename(""Pais"" = ""Country"","
+"0","         ""Continente"" = ""Continent"")"

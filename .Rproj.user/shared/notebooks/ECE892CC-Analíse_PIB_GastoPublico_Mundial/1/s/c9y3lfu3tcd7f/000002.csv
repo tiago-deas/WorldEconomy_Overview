@@ -1,0 +1,4 @@
+"0",""
+"0","mapa_mundo <- merge(x = shp_mundo,"
+"0","                    y = economia_mundial_completa2,"
+"0","                    by = ""iso_3166_1_"")"

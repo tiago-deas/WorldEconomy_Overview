@@ -1,0 +1,6 @@
+"0",""
+"0","economia_mundial_completa2 <- left_join(x = economia_mundial_completa,"
+"0","                                        y = codigo_paises,"
+"0","                                        by = ""Pais"")"
+"0",""
+"0","economia_mundial_completa2 <- economia_mundial_completa2 %>% rename(""iso_3166_1_"" = ""Code"")"

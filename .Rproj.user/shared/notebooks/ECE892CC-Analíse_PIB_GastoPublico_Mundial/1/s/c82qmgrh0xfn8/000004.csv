@@ -1,0 +1,5 @@
+"0",""
+"0","#   writeOGR(obj = mapa_mundo,"
+"0","#         layer = ""shp_mundo"","
+"0","#         driver = ""ESRI Shapefile"","
+"0","#         dsn = ""shp_mundo_completo"")"

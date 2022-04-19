@@ -1,0 +1,240 @@
+---
+title: "Analíse dos Gastos Públicos dos Governos de Cada País em Relação ao PIB"
+author: "Tiago de Almeida Silva"
+date: "18/04/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+**Introdução**
+
+Trabalho de Conclusão do curso de Iniciação no R com exemplos de Política Internacional criado pelo docente: Pedro Feliu Ribeiro, e ofertado pela Universidade de São Paulo (USP).
+
+Nesse trabalho eu escolhi o database sobre aspectos da economia mundial onde eu selecionei as variáveis de PIB e Gastos Públicos em relação ao PIB por país. Analisarei como o gasto público varia e se comporta em cada país e continente.
+
+Pra começar vou carregar os pacotes utilizados nesse projeto:
+
+
+```{r results='hide', message=FALSE, warning=FALSE}
+pacotes <- c("tidyverse","sf","tmap","rgdal","rgeos","adehabitatHR","knitr",
+             "kableExtra", "tidyr", "ggplot2", "readxl", "maptools", "broom",
+             "kableExtra", "dplyr")
+
+if(sum(as.numeric(!pacotes %in% installed.packages())) != 0){
+  instalador <- pacotes[!pacotes %in% installed.packages()]
+  for(i in 1:length(instalador)) {
+    install.packages(instalador, dependencies = T)
+    break()}
+  sapply(pacotes, require, character = T) 
+} else {
+  sapply(pacotes, require, character = T) 
+}
+```
+
+Carregando a base de dados "economia" para um novo objeto, e selecionando as linhas e colunas que serão utilizadas nesse projeto (PIB e Taxa de Gastos dos Governos em relação ao PIB):
+
+```{r}
+economia_mundial <- read_xls("economia.xls", col_names = T) %>% 
+  dplyr::select("country", "gdp__billions_", "govt__expenditure___gdp") %>% 
+  rename("PIB" = "gdp__billions_",
+         "Gasto_Gov" = "govt__expenditure___gdp",
+         "Pais" = "country")
+```
+
+Como existe muitos países no database vou plotar um scatter plot pra verificar a distribuição dos mesmos quanto ao seus PIBs e porcentagem de gastos governamentais em relação ao PIB, mas antes vou fazer um join do objeto acima com um arquivo CSV exibindo os continentes de cada país. Isso é interessante para se saber o comportamento da economia mundial em relação ao continente que determinado país está localizado.
+
+Carregando o arquivo CSV que contém os continentes de cada país da base de dados:
+
+```{r}
+
+continentes <- read.csv("paises_continentes.csv", header = T ) %>% 
+  rename("Pais" = "Country",
+         "Continente" = "Continent")
+```
+
+Fazendo um join em ambos objetos criados anteriormente:
+
+```{r}
+
+economia_mundial_completa <- left_join(x = economia_mundial,
+                                        y = continentes,
+                                        by = "Pais")
+```
+
+Plotando um scatter plot da relação PIB x Gastos Públicos em relação ao PIB, e atribuindo diferentes cores a cada continente para identificar de que região determinado país vem:
+
+```{r results='hide', message=FALSE, warning=FALSE, fig.width=8,fig.height=8}
+
+ggplot(economia_mundial_completa, aes(x = Gasto_Gov, y = PIB, color = Continente)) +
+  geom_point(size = 1) +
+  labs(title = "Porcentagem de Gastos Públicos de Cada País em Relação ao seu PIB",
+       x = "Percentual de Gastos Públicos",
+       y = "Produto Interno Bruto (PIB)"
+  ) +
+  geom_text(label = economia_mundial_completa$Pais, vjust = -0.7, size = 3) +
+  scale_y_continuous(breaks = seq(0,15000, by = 2500),
+                     labels = paste(seq(0,15000, by = 2500), "B")) +
+  scale_x_continuous(breaks = seq(0, 125, by = 25),
+                     labels = paste0(seq(0, 125, by = 25), "%")) +
+  theme_classic()
+  
+```
+
+Como pode ser verificado no gráfico acima, Estados Unidos, China e Japão possuíam as três maiores economias do mundo no ano em que os dados foram coletados. Além disso, dois países apresentaram dados de gasto público exorbitantes, Zimbábue e Kiribati. No caso de Kiribati, o seu gasto público excedeu as riquezas produzidas pelo país e isso é um claro sinal de fragilidade econômica e má gestão dos recursos públicos.
+
+Abaixo temos um gráfico de barras comparando o Gasto Público do Brasil com a média de cada continente:
+
+```{r message=FALSE, warning=FALSE}
+
+cont_media <- economia_mundial_completa %>% 
+  group_by(Continente, (economia_mundial_completa$Pais=="Brazil")) %>% 
+  summarise(Media = mean(Gasto_Gov, na.rm = T))
+
+cont_media[7,1] <-  "Brazil"
+cont_media <- cont_media[ ,c(1,3)]
+
+ggplot(cont_media, aes(x = reorder(Continente, Media), y = Media, fill=factor(ifelse(Continente=="Brazil","Brasil","Continentes")))) +
+  scale_fill_manual(name = "Região", values=c("blue2","lightgrey")) +
+  geom_col() +
+  geom_text(label = paste0(round(cont_media$Media), "%"), hjust = 1.3) +
+  labs(title = "Gasto público brasileiro X Média de gastos de cada continente",
+       x = "Continentes",
+       y = "Gastos Públicos") +
+   scale_y_continuous(breaks = seq(0,50, by = 10),
+                     labels = paste0(seq(0,50, by = 10), "%")) +
+  coord_flip() +
+  theme_classic()
+```
+
+Como podemos ver acima, o Gasto Público do Governo Brasileiro em relação ao PIB (41%) é relativamente elevado se comparado com a média da maioria dos continentes, principalmente do continente Sul Americano, o qual pertencemos.
+
+Abaixo veremos os 10 países com os Gastos Públicos mais elevados em relação ao PIB:
+
+```{r}
+
+top_paises <- economia_mundial_completa %>% 
+  arrange(desc(Gasto_Gov)) %>% 
+  slice(1:10)
+
+ggplot(top_paises, aes(x = Gasto_Gov, y = reorder(Pais, Gasto_Gov), fill = Continente)) +
+  geom_col() +
+  geom_text(label = paste0(round(top_paises$Gasto_Gov), "%"), hjust = 1.1) +
+  labs(title = "Top 10 países com maior % de gastos públicos",
+       x = "Gastos Públicos",
+       y = "Países") +
+   scale_x_continuous(breaks = seq(50,125, by = 25),
+                     labels = paste0(seq(50,125, by = 25), "%")) +
+  theme_classic()
+
+```
+
+Como mencionado anteriormente, Kiribati e Zimbábue apresentam gastos públicos muito elevados e isso é muito danoso para a saúde econômica do país. Além disso, podemos observar que há uma interessante prevalência de países muito pequenos territorialmente, como ilhas e arquipélagos, entre os que mais gastam.
+
+Abaixo estão os 10 países com as menores porcentagens de Gastos Públicos em relação ao PIB:
+
+```{r}
+
+bottom_paises <- economia_mundial_completa %>% 
+  arrange(Gasto_Gov) %>% 
+  slice(1:10)
+
+ggplot(bottom_paises, aes(x = Gasto_Gov, y = reorder(Pais, Gasto_Gov), fill = Continente)) +
+  geom_col() +
+  geom_text(label = paste0(round(bottom_paises$Gasto_Gov), "%"), hjust = 1.1) +
+  labs(title = "Top 10 países com menor % de gastos públicos",
+       x = "Gastos Públicos",
+       y = "Países") +
+   scale_x_continuous(breaks = seq(7,16, by = 3),
+                     labels = paste0(seq(7,16, by = 3), "%")) +
+  theme_classic()
+
+```
+
+Em relação aos países mais "austeros" em relação aos gastos públicos em relação ao PIB, as nações asiáticas dominam o Top 10. Burma, atualmente chamada de Myanmar, apresenta um valor baixíssimo em relação aos outros países do dataframe. Podemos dizer que o país, junto com Kiribati e Zimbábue, apresenta um comportamento típico de outlier em análise de dados devido a discrepância do seu valor em relação ao resto do conjunto de dados.
+
+Abaixo irei plotar no shapefile do mapa mundial todos os dados acima para facilitar a visualização e a análise visual dos dados. Além disso, dados inseridos em mapas nos dá uma maior ideia se há clusters espaciais economicamente fortes ou fracos ao redor do mundo.
+
+carregando o shapefile mundial em um objeto:
+
+```{r results='hide', message=FALSE, warning=FALSE}
+
+shp_mundo <- readOGR(dsn = "shp_mundo",
+                     layer = "world-administrative-boundaries")
+
+plot(shp_mundo)
+```
+Dando uma olhada no database do shapefile acima:
+
+```{r}
+
+df_shp <- (shp_mundo@data)
+
+head(df_shp)
+```
+
+Como notado no database do shapefile acima, os nomes de alguns países divergem dos que eu tenho no meu database anterior, e isso irá gerar problemas na hora de se fazer o merge pois muitos NAs irão surgir. Levando isso em consideração, vou adicionar os códigos ISO 3166, que existem no shapefile, de cada país ao meu dataframe principal para facilitar o processo de merge.
+
+Carregando o arquivo CSV com os dados necessários para o merge:
+
+```{r}
+
+codigo_paises <- read.csv("codigo_paises.csv", header = T) %>% 
+  rename("Pais" = "Name")
+```
+
+Fazendo o join entre o dataframe principal e o objeto acima:
+
+```{r}
+
+economia_mundial_completa2 <- left_join(x = economia_mundial_completa,
+                                        y = codigo_paises,
+                                        by = "Pais")
+
+economia_mundial_completa2 <- economia_mundial_completa2 %>% rename("iso_3166_1_" = "Code")
+```
+
+Fazendo o marge do dataframe acima com o shapefile:
+
+```{r}
+
+mapa_mundo <- merge(x = shp_mundo,
+                    y = economia_mundial_completa2,
+                    by = "iso_3166_1_")
+```
+
+Salvando o shapefile criado anteriormente:
+
+```{r}
+
+#   writeOGR(obj = mapa_mundo,
+#         layer = "shp_mundo",
+#         driver = "ESRI Shapefile",
+#         dsn = "shp_mundo_completo")
+```
+
+
+Finalmente criando o mapa com os dados de Gastos Públicos por país:
+
+```{r results='hide', message=FALSE, warning=FALSE, fig.width=8,fig.height=7}
+tm_shape(shp = mapa_mundo) +
+  tm_polygons("Gasto_Gov",
+              title = "Gastos públicos (%)",
+              style = "fixed",
+              palette = c("darkgreen", "lightgreen", "khaki", "darkorange", "red2"),
+              breaks = c(-Inf,25,50,75,100,Inf),
+              colorNA = "gray",
+              textNA = "Sem dados") +
+  tm_layout(main.title = "Porcentagem de gastos públicos por país em relação ao PIB",
+            title.size = 1.2,
+            legend.position = c("left", "bottom"))
+ 
+```
+
+Como observado acima, a maioria dos países apresentam um gasto público inferior a 50% do PIB mas algumas nações precisam rever o seus gastos pois um valor acima de 50% pode ser muito prejudicial à economia, e isso afeta diretamente a população local, principalmente em momentos de crises econômicas.
+
+**Conclusão**
+
+Nós vimos que alguns países apresentam um Produto Interno Bruto, conhecido como PIB, bem elevado e os mesmos são amplamente conhecidos no cenário mundial pois são os grandes players da economia global. Também vimos que alguns países, sobretudo os chamados países insulares (ilhas e arquipélagos), apresentam uma porcentagem bem alta de gastos públicos em relação ao seu PIB e isso é talvez explicado pelo fato de a economia desses países serem bem limitadas e pouco diversificadas devido ao pequeno e limitado espaço territorial. Países asiáticos dominaram a lista dos países com menos gastos públicos em relação ao PIB, e apesar de não ter nenhuma explicação lógica para isso, talvez questões culturais sejam um dos fatores para os números apresentados serem tão baixos.
+
+O Brasil, quando comparado com média dos continentes, apresentou um gasto público acima da média, mas isso é algo historicamente comum no sistema econômico brasileiro.
